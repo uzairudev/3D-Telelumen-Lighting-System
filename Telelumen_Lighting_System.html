@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - Platform - Model </title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				background-color: #ccc;
+				color: #000;
+			}
+			a {
+				color: #f00;
+			}
+		</style>
+	</head>
+	<body>
+		<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+		<script type="importmap">
+		  {
+			"imports": {
+			  "three": "https://unpkg.com/three@0.148.0/build/three.module.js",
+			  "three/addons/": "https://unpkg.com/three@0.148.0/examples/jsm/"
+			}
+		  }
+		</script>
+	  <script type="module">
+		import * as THREE from 'three';
+		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+		import { RectAreaLightHelper } from 'three/addons/helpers/RectAreaLightHelper.js';
+        import { VRButton } from 'three/addons/webxr/VRButton.js';
+		import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';
+		import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';
+		import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+		import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.17/+esm';
+					
+			let camera, controls, scene, renderer, Light;
+
+			init();
+			animate();
+	// Function for all the four (4) Lights 
+		function changeLight(value, model) {
+            model.remove(Light);
+
+			if(value == 'Directional'){
+				Light = new THREE.DirectionalLight( 0xffffff, 1 );
+                Light.castShadow = true;
+			}
+			else if(value == 'Point'){
+				Light = new THREE.PointLight( 0xffffff, 1 );
+                Light.castShadow = true;
+			}
+			else if(value == 'Spot'){
+				Light = new THREE.SpotLight( 0xffffff, 1 );
+                Light.target.position.set(0, 0, 35);
+                const hel = new THREE.SpotLightHelper(Light);
+                // scene.add(hel)
+		        Light.castShadow = true;
+			}
+			else if(value == 'Hemisphere'){
+				Light = new THREE.HemisphereLight( 0xffffff, 1 );
+			}
+            Light.position.set( 1, 40, 35);
+            model.add(Light)
+		}
+
+	function init() {
+	
+		// Scene and Scene Background 
+		scene = new THREE.Scene();
+		scene.background = new THREE.Color(0x000000);
+		
+		// Renderer
+		renderer = new THREE.WebGLRenderer({ antialias: false });
+		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		document.body.appendChild(renderer.domElement);
+        renderer.shadowMap.enabled = true;
+        
+		// Camera 
+		camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 2000);
+		camera.position.set(-10, 30, 210);
+
+		// controls
+		controls = new OrbitControls(camera, renderer.domElement);
+		controls.listenToKeyEvents(window);
+		controls.enableDamping = false;
+		controls.dampingFactor = 0.05;
+		controls.screenSpacePanning = false;
+		controls.minDistance = 100;
+		controls.maxDistance = 500;
+		controls.maxPolarAngle = Math.PI;
+		controls.target = new THREE.Vector3(0, 1, 0);
+
+		// Axes Helper
+		const axesHelper = new THREE.AxesHelper(5);
+		// scene.add( axesHelper );
+
+		//Materials  
+		const material = new THREE.MeshPhongMaterial({ color: 0xC4BA95, flatShading: true, transparent: false, opacity: 0.5 });
+		const dmaterial = new THREE.MeshPhongMaterial({ color: 0xff0000, flatShading: true });
+		const gmaterial = new THREE.MeshNormalMaterial();
+		const wmaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide});
+		const pmaterial = new THREE.MeshLambertMaterial({ color: 0x575750 });
+		const fmaterial = new THREE.MeshStandardMaterial({
+			color: 0x8F8F8F,
+			size: THREE.DoubleSide
+		})
+
+        // Texture Loader
+		const textureLoader = new THREE.TextureLoader()
+
+		const map = ( function () {
+			const earth = textureLoader.load( 'earth.jpeg' ); 
+            earth.wrapS = THREE.RepeatWrapping;
+			earth.wrapT = THREE.RepeatWrapping;
+			earth.repeat.set( 9, 1 );
+			return {
+				none: null,
+				earth: earth
+			};
+		} )();
+
+		const alphaMap = ( function () {
+			const fibers = textureLoader.load( 'alphaMap.jpg' ); 
+			fibers.wrapS = THREE.RepeatWrapping;
+			fibers.wrapT = THREE.RepeatWrapping;
+			fibers.repeat.set( 9, 1 );
+			return {
+				none: null,
+				fibers: fibers
+			};
+		} )();
+
+		// Floor/Grid
+		const helper = new THREE.GridHelper(1000, 100, 0x303030, 0x303030);
+		helper.position.y = -21.5
+		scene.add(helper);
+
+		// VR button 
+		document.body.appendChild( VRButton.createButton( renderer ) );
+		renderer.xr.enabled = true;
+        renderer.setAnimationLoop(function(time){renderer.render(scene, camera)})
+
+		// Platform Model (Group ) - The Parent
+		const model = new THREE.Object3D();
+		model.name = "model"
+		scene.add(model);
+
+		// Funtion to create Structure of the Model (Using grouping method)
+		function createLeg(model) {
+
+			// Centre of the leg as the reference point (The parent of the legs)
+			// Centre 
+			const centreGeometry = new THREE.BoxGeometry(2, 70, 2);
+			const cubeCentre = new THREE.Mesh(centreGeometry, pmaterial);
+			cubeCentre.position.set(10, 1, -0)
+			model.add(cubeCentre);
+
+			// Front Middle
+			const FrontMiddleGeometry = new THREE.BoxGeometry(1, 70, 1);
+			const cubeFrontMiddle = new THREE.Mesh(FrontMiddleGeometry, fmaterial);
+			cubeFrontMiddle.position.set(0, 0, -1)
+			cubeCentre.add(cubeFrontMiddle);
+
+			// Right Front Edge 
+			const RightFrontEdgeGeometry = new THREE.BoxGeometry(0.8, 70, 0.8);
+			const cubeRightFrontEdge = new THREE.Mesh(RightFrontEdgeGeometry, fmaterial);
+			cubeRightFrontEdge.position.set(1.1, 0, -1)
+			cubeCentre.add(cubeRightFrontEdge);
+
+			// Right Side Middle
+			const RightMiddleGeometry = new THREE.BoxGeometry(1, 70, 1);
+			const cubeRightMiddle = new THREE.Mesh(RightMiddleGeometry, fmaterial);
+			cubeRightMiddle.position.set(1, 0, 0.1)
+			cubeCentre.add(cubeRightMiddle);
+
+			// Right Back Edge 
+			const RightBackEdgeGeometry = new THREE.BoxGeometry(0.8, 70, 0.8);
+			const cubeRightBackEdge = new THREE.Mesh(RightBackEdgeGeometry, fmaterial);
+			cubeRightBackEdge.position.set(1.1, 0, 1.2)
+			cubeCentre.add(cubeRightBackEdge);
+
+			// Back Middle 
+			const BackMiddleGeometry = new THREE.BoxGeometry(1, 70, 1);
+			const cubeBackMiddle = new THREE.Mesh(BackMiddleGeometry, fmaterial);
+			cubeBackMiddle.position.set(0, 0, 1.1)
+			cubeCentre.add(cubeBackMiddle);
+
+			// Left Back Edge 
+			const LeftBackEdgeGeometry = new THREE.BoxGeometry(0.8, 70, 0.8);
+			const cubeLeftBackEdge = new THREE.Mesh(LeftBackEdgeGeometry, fmaterial);
+			cubeLeftBackEdge.position.set(-1.1, 0, 1.2)
+			cubeCentre.add(cubeLeftBackEdge);
+
+			// Left Side Middle
+			const LeftMiddleGeometry = new THREE.BoxGeometry(1, 70, 1);
+			const cubeLeftMiddle = new THREE.Mesh(LeftMiddleGeometry, fmaterial);
+			cubeLeftMiddle.position.set(-1, 0, 0.1)
+			cubeCentre.add(cubeLeftMiddle);
+
+			// Left Front Edge 
+			const LeftFrontEdgeGeometry = new THREE.BoxGeometry(0.8, 70, 0.8);
+			const cubeLeftFrontEdge = new THREE.Mesh(LeftFrontEdgeGeometry, fmaterial);
+			cubeLeftFrontEdge.position.set(-1.2, 0, -1)
+			cubeCentre.add(cubeLeftFrontEdge);
+
+			return cubeCentre;
+		}
+
+		// I am calling the function here to duplicate the created leg of the Model
+		// First Leg of the Model
+		const Leg1 = createLeg(model);
+		model.add(Leg1);
+		Leg1.position.set(35, 14, 0)
+
+		//Second Leg of the Model
+		const Leg2 = createLeg(model);
+		Leg2.position.set(-35, 14, 0);
+
+		// Third Leg
+		const Leg3 = createLeg(model);
+		Leg3.position.set(-35, 14, 70)
+
+		// Fourth Leg
+		const Leg4 = createLeg(model);
+		Leg4.position.set(35, 14, 70)
+
+		// Create Model Frame
+
+		// Front Upper Frame 
+		const UpperFrontFrame = createLeg(model)
+		UpperFrontFrame.position.set(0, 47.5, 70)
+		UpperFrontFrame.rotation.set(0, 0, Math.PI / 2)
+		UpperFrontFrame.scale.set(1, 0.96, 1)
+
+		// Front Lower Frame 
+		const LowerFrontFrame = createLeg(model)
+		LowerFrontFrame.position.set(0, 37.5, 70)
+		LowerFrontFrame.rotation.set(0, 0, Math.PI / 2)
+		LowerFrontFrame.scale.set(1, 0.96, 1)
+
+		// Middle Frame 1
+		const MiddleFrame1 = createLeg(model)
+		MiddleFrame1.position.set(0, 47.5, 46.6)
+		MiddleFrame1.rotation.set(0, 0, Math.PI / 2)
+		MiddleFrame1.scale.set(1, 0.96, 1)
+
+		// Middle Frame 2
+		const MiddleFrame2 = createLeg(model)
+		MiddleFrame2.position.set(0, 47.5, 23.3)
+		MiddleFrame2.rotation.set(0, 0, Math.PI / 2)
+		MiddleFrame2.scale.set(1, 0.96, 1)
+
+		// Sub Middle Frame 1
+		const SubMiddleFrame1 = createLeg(model)
+		SubMiddleFrame1.position.set(0, 47.5, 58)
+		SubMiddleFrame1.rotation.set(Math.PI / 2, 0, 0)
+		SubMiddleFrame1.scale.set(1, 0.3, 1)
+
+		// Sub Middle Frame 3
+		const SubMiddleFrame3 = createLeg(model)
+		SubMiddleFrame3.position.set(-17.5, 47.5, 35)
+		SubMiddleFrame3.rotation.set(Math.PI / 2, 0, 0)
+		SubMiddleFrame3.scale.set(1, 0.3, 1)
+
+		// Sub Middle Frame 2
+		const SubMiddleFrame2 = createLeg(model)
+		SubMiddleFrame2.position.set(17.5, 47.5, 35)
+		SubMiddleFrame2.rotation.set(Math.PI / 2, 0, 0)
+		SubMiddleFrame2.scale.set(1, 0.3, 1)
+
+		// Sub Middle Frame 4
+		const SubMiddleFrame4 = createLeg(model)
+		SubMiddleFrame4.position.set(0, 47.5, 11.5)
+		SubMiddleFrame4.rotation.set(Math.PI / 2, 0, 0)
+		SubMiddleFrame4.scale.set(1, 0.3, 1)
+
+		// Back Upper Frame 
+		const UpperBackFrame = createLeg(model)
+		UpperBackFrame.position.set(0, 47.5, -0)
+		UpperBackFrame.rotation.set(0, 0, Math.PI / 2)
+		UpperBackFrame.scale.set(1, 0.96, 1)
+
+		// // Back Lower Frame 
+		const LowerBackFrame = createLeg(model)
+		LowerBackFrame.position.set(0, 37.5, -0)
+		LowerBackFrame.rotation.set(0, 0, Math.PI / 2)
+		LowerBackFrame.scale.set(1, 0.96, 1)
+
+		// Right Upper Frame 
+		const UpperRightFrame = createLeg(model)
+		UpperRightFrame.position.set(-35, 47.5, 35)
+		UpperRightFrame.rotation.set(Math.PI / 2, 0, 0)
+		UpperRightFrame.scale.set(1, 0.96, 1)
+
+		// Right Lower Frame 
+		const LowerRightFrame = createLeg(model)
+		LowerRightFrame.position.set(-35, 37.5, 35)
+		LowerRightFrame.rotation.set(Math.PI / 2, 0, 0)
+		LowerRightFrame.scale.set(1, 0.96, 1)
+
+		// Left Upper Frame 
+		const UpperLeftFrame = createLeg(model)
+		UpperLeftFrame.position.set(35, 47.5, 35)
+		UpperLeftFrame.rotation.set(Math.PI / 2, 0, 0)
+		UpperLeftFrame.scale.set(1, 0.96, 1)
+
+		// Right Upper Frame 
+		const LowerLeftFrame = createLeg(model)
+		LowerLeftFrame.position.set(35, 37.5, 35)
+		LowerLeftFrame.rotation.set(Math.PI / 2, 0, 0)
+		LowerLeftFrame.scale.set(1, 0.96, 1)
+
+		// Function  to create Roof of the Model and Faces
+		function createRoofAndFace(Roofmaterial = new THREE.MeshLambertMaterial( {color: 0xAAFF00} )) {
+				const RoofAndFacegeometry = new THREE.BoxGeometry( 70, 10, 0.5);
+				const Roofcube = new THREE.Mesh( RoofAndFacegeometry, Roofmaterial );
+				Roofcube.position.set(0, 42, 0)
+				model.add( Roofcube );
+
+			return Roofcube;
+		}
+		// // Calling the function for the Roof and Face
+		const Roof1 = createRoofAndFace(fmaterial);
+		model.add(Roof1);
+		Roof1.rotation.x = Math.PI / 2
+		Roof1.position.set(0, 49, 35)
+		Roof1.scale.set(1.04, 7.30, 2);
+
+		const Roof2material = new THREE.MeshLambertMaterial({color: 0xFFFFFF});
+		const Roof2 = createRoofAndFace(Roof2material);
+		Roof2.rotation.x = Math.PI / 2
+		Roof2.position.set(0, 48.56, 35)
+		Roof2.scale.set(1.04, 7.29, 0.3);
+
+		const BackFace = createRoofAndFace()
+
+		const InnerBackFace = createRoofAndFace(Roof2material)
+		InnerBackFace.position.set(0, 42, 0.5)
+
+		const FrontFace = createRoofAndFace()
+		FrontFace.position.set(0, 42, 70)
+
+		const InnerFrontFace = createRoofAndFace(Roof2material)
+		InnerFrontFace.position.set(0, 42, 69.5)
+
+		const LeftFace = createRoofAndFace()
+		LeftFace.position.set (-36, 42, 35)
+		LeftFace.rotation.y = Math.PI / 2
+
+		const LeftInnerFace = createRoofAndFace(Roof2material)
+		LeftInnerFace.position.set (-35, 42, 35)
+		LeftInnerFace.rotation.y = Math.PI / 2
+
+		const RightFace = createRoofAndFace()
+		RightFace.position.set (36, 42, 35)
+		RightFace.rotation.y = Math.PI / 2
+
+		const RightInnerFace = createRoofAndFace(Roof2material)
+		RightInnerFace.position.set (35, 42, 35)
+		RightInnerFace.rotation.y = Math.PI / 2
+
+		// Table of the Telelumen lighting system (Square Shape)
+		// Table top (Upper Table)
+		const UpperTableGeometry = new THREE.BoxGeometry(45, 1, 25);
+
+		const UpperTable = new THREE.Mesh(UpperTableGeometry, pmaterial);
+		UpperTable.position.set(1, -5.5, 35)
+		model.add(UpperTable);
+        UpperTable.castShadow = true 
+        UpperTable.receiveShadow = true
+
+		// Create Table Wheels
+		const WheelGeometry = new THREE.BoxGeometry(1.5, 14, 1.5);
+
+		// Wheel 1 of the Table
+		const Wheel1 = new THREE.Mesh(WheelGeometry, pmaterial);
+		Wheel1.position.set(20, -6.5, 0)
+		UpperTable.add(Wheel1);
+
+		// Wheel  2 of the Table  
+		const Wheel2 = new THREE.Mesh(WheelGeometry, pmaterial);
+		Wheel2.position.set(-20, -6.5, 0)
+		UpperTable.add(Wheel2);
+
+		// Wheel 1 Ground 
+		const Wheel1GroundGeometry = new THREE.BoxGeometry(2, 2, 10)
+		const Wheel1Ground = new THREE.Mesh(Wheel1GroundGeometry, pmaterial);
+		Wheel1Ground.position.set(20, -14.5, 0)
+		UpperTable.add(Wheel1Ground);
+
+		// Wheel 2 Ground 
+		const Wheel2GroundGeometry = new THREE.BoxGeometry(2, 2, 10)
+		const Wheel2Ground = new THREE.Mesh(Wheel2GroundGeometry, pmaterial);
+		Wheel2Ground.position.set(-20, -14.5, 0)
+		UpperTable.add(Wheel2Ground);
+
+	
+		// GUI  and GUI Folders 
+		const gui = new GUI();
+
+		// Folder for Wall color
+		const wallFolder = gui.addFolder('Back Wall Color')
+		wallFolder.close();
+
+		// Folder for Light Sources 
+		const LightSourcesFolder = gui.addFolder('Lights Sources') 
+		LightSourcesFolder.close();
+
+		// Geometry Properties Folder
+		const geometryFolder = LightSourcesFolder.addFolder('Geometrical Properties')
+		
+		// Materials folder 
+		const MaterialsFolder = gui.addFolder('Materials')
+		MaterialsFolder.close();
+
+		// Shadow Folder
+		const ShadowFolder = gui.addFolder('Shadows') 
+		ShadowFolder.close();
+
+
+		// Walls 
+		function creatWalls(Wallmaterial = new THREE.MeshLambertMaterial( {color: 0xffffff, side: THREE.DoubleSide} )){
+			const Wallgeometry = new THREE.PlaneGeometry( 70, 60 );
+			const Wallplane = new THREE.Mesh( Wallgeometry, Wallmaterial );
+			model.add( Wallplane );
+
+			return Wallplane;
+		}
+
+		// Calling function for the walls
+		const Backwall = creatWalls()
+		Backwall.position.set(0, 9, 0)
+		wallFolder.addColor( Backwall.material, 'color' );
+
+		const LeftWallmaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side: THREE.DoubleSide});
+		const LeftWall = creatWalls(LeftWallmaterial)
+		LeftWall.position.set(-35, 9, 35)
+		LeftWall.rotation.y = Math.PI / 2 
+
+		const RightWallmaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide});
+		const RightWall = creatWalls(RightWallmaterial)
+		RightWall.position.set(35, 9, 35)
+		RightWall.rotation.y = Math.PI / 2 
+
+		const Groundwall = creatWalls()
+		Groundwall.position.set(0, -21.1, 35)
+		Groundwall.scale.set(1, 1.2, 5)
+		Groundwall.rotation.x = Math.PI / 2 
+        Groundwall.receiveShadow = true
+        
+		// // Create Wall RectAreaLight
+		const width = 60;
+		const height = 70;
+		const intensity = 1;
+		const rectLight = new THREE.RectAreaLight( 0xffffff, intensity,  width, height );
+		rectLight.position.set( 0, 9, 0 );
+		rectLight.rotation.x = -Math.PI
+		scene.add( rectLight )
+
+		const Redwidth = 60;
+		const Redheight = 70;
+		const Redintensity = 20;
+		const RedrectLight = new THREE.RectAreaLight( 0xff0000, intensity,  width, height );
+		RedrectLight.position.set( -35, 9, 35 );
+		RedrectLight.rotation.y = -Math.PI/2
+		scene.add( RedrectLight )
+
+		const Greenwidth = 60;
+		const Greenheight = 70;
+		const Greenintensity = 20;
+		const GreenrectLight = new THREE.RectAreaLight( 0x00ff00, intensity,  width, height );
+		GreenrectLight.position.set( 35, 9, 35 );
+		GreenrectLight.rotation.y = Math.PI/2
+		scene.add( GreenrectLight )
+	
+		// Materials
+		// Objects on the Table (Cone, Cylinder, Sphere)
+		// Cone
+		const Conegeometry = new THREE.ConeGeometry(5, 10, 32);
+		const Conematerial = new THREE.MeshLambertMaterial({ color: 0x898F8D });
+		const cone = new THREE.Mesh(Conegeometry, Conematerial);
+		cone.position.set(-13, 5, -4.5)
+		UpperTable.add(cone);
+        cone.castShadow = true 
+        cone.receiveShadow = true
+    
+		// Cylinder
+		const Cylindergeometry = new THREE.CylinderGeometry(4.5, 4.5, 10, 32);
+		const Cylindermaterial = new THREE.MeshPhongMaterial({ color: 0x898F8D });
+		const cylinder = new THREE.Mesh(Cylindergeometry, Cylindermaterial);
+		cylinder.position.set(13, 5, -4.5)
+		cylinder.rotation.set(Math.PI/2, 0, 0.8)
+		UpperTable.add(cylinder);
+        cylinder.castShadow = true 
+        cylinder.receiveShadow = true
+
+		// Sphere
+		const Spheregeometry = new THREE.SphereGeometry(5, 100, 100);
+		const Spherematerial = new THREE.MeshPhysicalMaterial({ color: 0x898F8D });
+		const sphere = new THREE.Mesh(Spheregeometry, Spherematerial);
+		sphere.position.set(0, 5.5, 7.5)
+		UpperTable.add(sphere);
+        sphere.castShadow = true 
+        sphere.receiveShadow = true
+
+	// Materials Control
+		const materialControls = {
+			color: 0x7b807e,
+			VertexColor: 0x515453,
+			Wireframe: false,
+			Reflectivity: 0,
+			Emissive: 0x000000,
+			DepthTest: true,
+            DepthWrite: true,
+            Fog: true,
+			AlphaTest: 0.5,
+			Opacity: 0.5,
+			Transparent: false,
+			Visible: true,
+			Roughness: 0,
+			Metalness: 0,
+			ClearCoat: 0,
+            Transmission: 0,
+			FlatShading: false,
+			Side: THREE.FrontSide,
+			map: map.none,		
+			alphaMap: map.none	
+		};
+
+		MaterialsFolder.addColor(materialControls, 'color').name('Color').onChange((color) => {
+			cone.material.color.setHex(color);
+			sphere.material.color.setHex(color);
+			cylinder.material.color.setHex(color);
+		});
+
+		MaterialsFolder.addColor(materialControls, 'VertexColor').name('Vertex Color').onChange((color) => {
+			cone.material.color.setHex(color);
+			sphere.material.color.setHex(color);
+			cylinder.material.color.setHex(color);
+		});
+
+		MaterialsFolder.add(materialControls, 'Fog').name('Fog').onChange((value) => {
+			cone.material.Fog = value;
+			sphere.material.Fog = value;
+			cylinder.material.Fog = value;
+            needsUpdate(cone, sphere, cylinder);
+		});
+
+		MaterialsFolder.add(materialControls, 'Wireframe').name('Wireframe').onChange((value) => {
+			cone.material.wireframe = value;
+			sphere.material.wireframe = value;
+			cylinder.material.wireframe = value;
+		});
+
+        MaterialsFolder.add(materialControls, 'FlatShading').name('Flat Shading').onChange((value) => {
+			cone.material.flatShading = value;
+			sphere.material.flatShading = value;
+			cylinder.material.flatShading = value;
+            needsUpdate(cone, sphere, cylinder);
+		});
+
+		MaterialsFolder.add(materialControls, 'Reflectivity', 0, 1).name('Reflectivity').onChange((value) => {
+			cone.material.reflectivity = value;
+			sphere.material.reflectivity = value;
+			cylinder.material.reflectivity = value;
+		});
+
+		MaterialsFolder.addColor(materialControls, 'Emissive').name('Emissive').onChange((color) => {
+			cone.material.emissive.setHex(color);
+			sphere.material.emissive.setHex(color);
+			cylinder.material.emissive.setHex(color);
+		});
+
+		MaterialsFolder.add(materialControls, 'DepthTest').name('Depth Test').onChange((value) => {
+			cone.material.depthTest = value;
+			sphere.material.depthTest = value;
+			cylinder.material.depthTest = value;
+            needsUpdate(cone, sphere, cylinder);
+		});
+
+        MaterialsFolder.add(materialControls, 'DepthWrite').name('Depth Write').onChange((value) => {
+			cone.material.DepthWrite = value;
+			sphere.material.DepthWrite = value;
+			cylinder.material.DepthWrite = value;
+            needsUpdate(cone, sphere, cylinder);
+		});
+
+		MaterialsFolder.add(materialControls, 'AlphaTest', 0, 1).name('Alpha Test').onChange((value) => {
+			cone.material.alphaTest = value;
+			sphere.material.alphaTest = value;
+			cylinder.material.alphaTest = value;
+		});
+
+		MaterialsFolder.add(materialControls, 'Opacity', 0, 1).name('Opacity').onChange((value) => {
+			cone.material.opacity = value;
+			sphere.material.opacity = value;
+			cylinder.material.opacity = value;
+		});
+
+		MaterialsFolder.add(materialControls, 'Transparent').name('Transparent').onChange((value) => {
+			cone.material.transparent = value;
+			sphere.material.transparent = value;
+			cylinder.material.transparent = value;
+			needsUpdate(cone, sphere, cylinder);
+		});
+
+		MaterialsFolder.add(materialControls, 'Side', { 'Front': THREE.FrontSide, 'Back': THREE.BackSide, 'Double': THREE.DoubleSide }).name('Side').onChange((value) => {
+			cone.material.side = value;
+			sphere.material.side = value;
+			cylinder.material.side = value;
+		});
+
+		MaterialsFolder.add(materialControls, 'Visible').name('Visible').onChange((value) => {
+			cone.material.visible = value;
+			sphere.material.visible = value;
+			cylinder.material.visible = value;
+		});
+
+        MaterialsFolder.add(materialControls, 'map', {'none': map.none, 'Earth': map.earth}).name('map').onChange((value) =>{
+			cone.material.map = value;
+			sphere.material.map = value;
+			cylinder.material.map = value;
+			needsUpdate(cone, sphere, cylinder);
+		});
+
+		MaterialsFolder.add(materialControls, 'alphaMap', {'none': alphaMap.none, 'fibers': alphaMap.fibers}).name('alphaMap').onChange((value) =>{
+			cone.material.alphaMap = value;
+			sphere.material.alphaMap = value;
+			cylinder.material.alphaMap = value;
+			needsUpdate(cone, sphere, cylinder);
+		});
+
+         // Sphere Folder (For Specific Material Properties)
+         const SphereFolder = MaterialsFolder.addFolder('Sphere')
+
+         SphereFolder.add(materialControls, 'Roughness', 0, 1).name('Roughness').onChange((value) => {
+			cone.material.roughness = value;
+			sphere.material.roughness = value;
+			cylinder.material.roughness = value;
+		});
+
+		SphereFolder.add(materialControls, 'Metalness', 0, 1).name('Metalness').onChange((value) => {
+			cone.material.metalness = value;
+			sphere.material.metalness = value;
+			cylinder.material.metalness = value;
+		});
+
+		SphereFolder.add(materialControls, 'ClearCoat', 0, 1).name('ClearCoat').onChange((value) => {
+        cone.material.clearCoat = value;
+        sphere.material.clearCoat = value;
+        cylinder.material.clearCoat = value;
+        needsUpdate(cone, sphere, cylinder);
+        });
+
+        SphereFolder.add(materialControls, 'Transmission', 0, 1).name('Transmission').onChange((value) => {
+            sphere.material.transmission = value;
+            needsUpdate(cone, sphere, cylinder);
+        });
+
+		MaterialsFolder.add(materialControls)
+	
+		// Light Source on the Ceiling 
+		const CeilingCylindergeometry = new THREE.CylinderGeometry( 5, 10, 3, 4, 4 );
+		const Ceilingcylinder = new THREE.Mesh( CeilingCylindergeometry, fmaterial );
+		Ceilingcylinder.position.set(0, 45, 35);
+		Ceilingcylinder.rotation.set(0, -0.8, 0)
+		model.add( Ceilingcylinder );
+		
+		// Light Source White Frame on the Ceiling
+		const LightFramegeometry = new THREE.PlaneGeometry(11, 11 );
+		const LightFrameplane = new THREE.Mesh( LightFramegeometry, wmaterial );
+		LightFrameplane.position.set (0, -2, 0)
+		LightFrameplane.rotation.set (Math.PI / 2, 0, 0.8)
+		Ceilingcylinder.add( LightFrameplane );
+		
+		// Lights
+		// Ambient Light (Default Light)
+		const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+		ambientLight.position.set(0, 1, 0)
+		scene.add(ambientLight);
+		
+		// Point Light, Spot Light, Hemisphere Light, Directional Light 
+		Light = new THREE.PointLight( 0xffffff, 0.8 );
+		Light.position.set( 1, 40, 35);
+		Light.castShadow = true;
+     
+		// Controls for the Lights
+        const lightControls = {
+            intensity: 0.8,
+            distance: 0,
+            color: 0xffffff, 
+            position: { x: 0, y: 0, z: 0 }
+        }
+        LightSourcesFolder.add(lightControls, 'intensity', 0, 3).name('intensity').onChange((value) => {
+			Light.intensity = value;
+		});
+
+        LightSourcesFolder.add(lightControls, 'distance', 0, 100).name('distance').onChange((value) => {
+			Light.distance = value;
+		});
+
+        LightSourcesFolder.addColor(lightControls, 'color').name('color').onChange((value) => {
+            Light.color.set(value);
+        });
+
+        geometryFolder.add(lightControls.position, 'x', -100, 100).name('x').onChange(() => {
+            Light.position.setX(lightControls.position.x);
+        });
+        geometryFolder.add(lightControls.position, 'y', -100, 100).name('y').onChange(() => {
+            Light.position.setY(lightControls.position.y);
+        });
+        geometryFolder.add(lightControls.position, 'z', -100, 100).name('z').onChange(() => {
+            Light.position.setZ(lightControls.position.z);
+        });
+		model.add( Light );
+
+		var light = {type: 'Point'}
+		changeLight(light.type, model);
+		LightSourcesFolder.add(light, 'type', [ 'Point', 'Spot', 'Hemisphere', 'Directional']).onChange(value=>{
+			changeLight(value, model);
+		});
+
+
+	// Create GUI controls for light shadow properties
+			const shadowControls = {
+			shadowMapWidth: 512,
+			shadowMapHeight: 512,
+			shadowCameraNear: 0.5,
+			shadowCameraFar: 500,
+			shadowEnabled: true,
+			shadowCameraFov: 45,
+		  	shadowBias: 0.001,
+			};
+			
+			ShadowFolder.add(shadowControls, 'shadowEnabled').onChange(() => {
+			Light.castShadow = shadowControls.shadowEnabled;
+			});
+
+			ShadowFolder.add(shadowControls, 'shadowBias', 0, 0.01, 0.0001).onChange(() => {
+				Light.shadow.bias = shadowControls.shadowBias;
+			});
+
+			ShadowFolder.add(shadowControls, 'shadowMapWidth', 256, 4096, 1).onChange(() => {
+				Light.shadow.mapSize.width = shadowControls.shadowMapWidth;
+			});
+
+			ShadowFolder.add(shadowControls, 'shadowMapHeight', 256, 4096, 1).onChange(() => {
+				Light.shadow.mapSize.height = shadowControls.shadowMapHeight;
+			});
+
+			ShadowFolder.add(shadowControls, 'shadowCameraFov', 30, 120, 1).onChange(() => {
+				Light.shadow.camera.fov = shadowControls.shadowCameraFov;
+				Light.shadow.camera.updateProjectionMatrix();
+			});
+
+		// VR Button Interface  
+			const group = new InteractiveGroup( renderer, camera );
+				scene.add( group );
+
+				const mesh = new HTMLMesh( gui.domElement );
+				mesh.position.x = -25;
+				mesh.position.y = 25;
+				mesh.position.z = 70;
+				mesh.rotation.y = Math.PI / 4;
+				mesh.scale.setScalar( 50 );
+				group.add( mesh );
+
+		window.addEventListener('resize', onWindowResize);
+	}
+
+	function needsUpdate(cone, sphere, cylinder) {
+		cone.material.needsUpdate = true;
+		cone.geometry.attributes.position.needsUpdate = true;
+		cone.geometry.attributes.normal.needsUpdate = true;
+		
+		sphere.material.needsUpdate = true;
+		sphere.geometry.attributes.position.needsUpdate = true;
+		sphere.geometry.attributes.normal.needsUpdate = true;
+		
+		cylinder.material.needsUpdate = true;
+		cylinder.geometry.attributes.position.needsUpdate = true;
+		cylinder.geometry.attributes.normal.needsUpdate = true;
+	}
+
+	function onWindowResize() {
+		console.log(window.innerWidth);
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+	}
+
+		function animate(time) {
+		// requestAnimationFrame( animate );
+		controls.update(); 
+			render();
+		}
+
+		renderer.setAnimationLoop( function (time) {
+		animate(time)
+		renderer.render( scene, camera );
+		} );
+
+		function render() {
+		renderer.render( scene, camera );
+		}
+		</script>
+	</body>
+</html>
