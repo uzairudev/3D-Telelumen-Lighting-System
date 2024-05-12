@@ -414,7 +414,7 @@
 		
 		// Materials folder 
 		const MaterialsFolder = gui.addFolder('Materials')
-		MaterialsFolder.close();
+		MaterialsFolder.open();
 
 		// Shadow Folder
 		const ShadowFolder = gui.addFolder('Shadows') 
@@ -758,7 +758,7 @@
 
 		// VR Button Interface  
 			const group = new InteractiveGroup( renderer, camera );
-				scene.add( group );
+				//scene.add( group );
 
 				const mesh = new HTMLMesh( gui.domElement );
 				mesh.position.x = -25;
