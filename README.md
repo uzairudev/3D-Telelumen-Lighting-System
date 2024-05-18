@@ -50,15 +50,4 @@ This project demonstrates a 3D platform model created using Three.js. It include
 - [XRControllerModelFactory](https://threejs.org/docs/#examples/en/webxr/XRControllerModelFactory)
 - [lil-gui](https://github.com/georgealways/lil-gui)
 
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
 
-## Contributing
-Contributions are welcome! Please open an issue or submit a pull request for any bugs or enhancements.
-
-## Contact
-For any questions or feedback, please reach out to [your-email@example.com](mailto:your-email@example.com).
-
----
-
-Feel free to customize this README further based on your specific needs and preferences.
