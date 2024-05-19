@@ -85,18 +85,3 @@ The Three.js scene is initialized with a black background, a camera positioned t
 - [Three.js Lighting Documentation](https://threejs.org/manual/#en/lights)
 - [lil-gui Documentation](https://lil-gui.georgealways.com/)
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request for any bugs or enhancements.
-
-## Contact
-
-For any questions or feedback, please reach out to [your-email@example.com](mailto:your-email@example.com).
-
----
-
-Feel free to customize this README further based on your specific needs and preferences.
