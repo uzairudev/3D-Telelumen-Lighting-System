@@ -1,6 +1,3 @@
-Sure, here's a more natural and polished README for your project, reflecting the completed work:
-
----
 
 # Telelumen Lighting System in a Cornell Box with Three.js
 
