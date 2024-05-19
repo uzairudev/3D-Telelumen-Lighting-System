@@ -30,8 +30,8 @@ This project showcases a 3D model of the Telelumen lighting system within a Corn
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-username/telelumen-lighting-cornell-box.git
-    cd telelumen-lighting-cornell-box
+    git clone https://github.com/uzairudev/3D-Telelumen-Lighting-System.git
+    cd 3D-Telelumen-Lighting-System
     ```
 
 2. Install dependencies and start a local web server:
