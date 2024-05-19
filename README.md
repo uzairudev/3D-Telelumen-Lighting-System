@@ -1,7 +1,6 @@
-
 # Telelumen Lighting System in a Cornell Box with Three.js
 
-## Overview
+## Project Overview
 
 This project showcases a 3D model of the Telelumen lighting system within a Cornell Box using Three.js. The project involves dynamic interaction with the scene through a graphical user interface (GUI), experimenting with various lighting and material properties, and experiencing the setup in VR.
 
@@ -77,9 +76,7 @@ The Three.js scene is initialized with a black background, a camera positioned t
 - **Interactive Group**: GUI controls available in VR for an immersive and interactive experience.
 
 
-
 ## References
-
 - [Basic Theory of Physically Based Rendering](https://marmoset.co/posts/basic-theory-of-physically-based-rendering/)
 - [Three.js Materials Documentation](https://threejs.org/manual/#en/materials)
 - [Three.js Lighting Documentation](https://threejs.org/manual/#en/lights)
